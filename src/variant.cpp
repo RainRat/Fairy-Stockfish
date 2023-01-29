@@ -463,6 +463,75 @@ namespace {
         v->pastGating = true;
         return v;
     }
+    
+    Variant* one_d_variant() { //https://ludii.games/details.php?keyword=1D%20Chess
+        Variant* v = chess_variant_base()->init();
+        v->maxRank = RANK_1;
+        v->maxFile = FILE_H;
+        v->remove_piece(KNIGHT);
+        v->add_piece(CUSTOM_PIECES, 'n', "D");
+        v->startFen = "KNR2rnk w - - 0 1";
+        return v;
+    }
+    
+    Variant* tuktuk_variant() { //https://ludii.games/details.php?keyword=T%27uk%20T%27uk
+        Variant* v = chess_variant_base()->init();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_F;
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECES, 'w', "mW"); //move as a Wazir, but can't capture
+        v->startFen = "wwwwww/6/6/6/6/WWWWWW w - - 0 1";
+        v->stalemateValue = -VALUE_MATE;
+        return v;
+    }
+    
+    Variant* aralzaa_variant() { //https://ludii.games/details.php?keyword=Aralzaa
+        Variant* v = chess_variant_base()->init();
+        v->maxRank = RANK_3;
+        v->maxFile = FILE_C;
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECES, 'n', "mN"); //move as a Knight, but can't capture
+        v->startFen = "nnn/3/NNN w - - 0 1";
+        v->flagPiece = CUSTOM_PIECES;
+        v->whiteFlag = Rank3BB;
+        v->blackFlag = Rank1BB;
+        v->numFlag = 3;
+        return v;
+    }
+    Variant* bajr_variant() { //https://ludii.games/variantDetails.php?keyword=Bajr&variant=1036
+        Variant* v = chess_variant_base()->init();
+        v->maxRank = RANK_6;
+        v->maxFile = FILE_F;
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECES, 'p', "mK"); //move as a King, but can't capture
+        v->startFen = "4pp/5p/6/6/P5/PP4 w - - 0 1";
+        v->flagPiece = CUSTOM_PIECES;
+        v->whiteFlag = make_bitboard(SQ_E6, SQ_F6, SQ_F5);
+        v->blackFlag = make_bitboard(SQ_A1, SQ_A2, SQ_B1);
+        v->numFlag = 3;
+        return v;
+    }
+    Variant* lewthwaite_variant() { //https://ludii.games/details.php?keyword=Lewthwaite%27s%20Game
+        Variant* v = chess_variant_base()->init();
+        v->maxRank = RANK_5;
+        v->maxFile = FILE_E;
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECES, 'w', "mW"); //move as a Wazir, but can't capture
+        v->startFen = "wWwWw/WwWwW/wW1Ww/WwWwW/wWwWw w - - 0 1";
+        v->stalemateValue = -VALUE_MATE;
+        return v;
+    }
+    
+    Variant* fox_and_hounds_variant() { //https://boardgamegeek.com/boardgame/148180/fox-and-hounds
+        Variant* v = chess_variant_base()->init();
+        v->reset_pieces();
+        v->add_piece(CUSTOM_PIECES, 'h', "mfF"); //Hound
+        v->add_piece(CUSTOM_PIECES+1, 'f', "mF"); //Fox
+        v->startFen = "1h1h1h1h/8/8/8/8/8/8/4F3 w - - 0 1";
+        v->stalemateValue = -VALUE_MATE;
+        v->whiteFlag = Rank8BB;
+        return v;
+    }
 #endif
     // Three-check chess
     // Check the king three times to win
@@ -1588,6 +1657,12 @@ void VariantMap::init() {
     add("snailtrail", snailtrail_variant());
     add("duck", duck_variant());
     add("joust", joust_variant());
+    add("tuktuk", tuktuk_variant());
+    add("one_d", one_d_variant());
+    add("aralzaa", aralzaa_variant());
+    add("bajr", bajr_variant());
+    add("lewthwaite", lewthwaite_variant());
+    add("fox_and_hounds", fox_and_hounds_variant());
 #endif
     add("3check", threecheck_variant());
     add("5check", fivecheck_variant());

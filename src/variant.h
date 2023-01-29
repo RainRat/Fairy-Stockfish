@@ -135,6 +135,7 @@ struct Variant {
   PieceType flagPiece = NO_PIECE_TYPE;
   Bitboard whiteFlag = 0;
   Bitboard blackFlag = 0;
+  int numFlag = 1;
   bool flagMove = false;
   bool checkCounting = false;
   int connectN = 0;
