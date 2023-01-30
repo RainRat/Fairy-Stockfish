@@ -1823,10 +1823,24 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   {
       std::memset(st->unpromotedBycatch, 0, sizeof(st->unpromotedBycatch));
       st->demotedBycatch = st->promotedBycatch = 0;
-      Bitboard blast =  blast_on_capture() ? ((attacks_bb<KING>(to) & (pieces() ^
-                        (pawns_get_blast() ? Bitboard(0) : pieces(PAWN)))) | to ) &
-                        (pieces() ^ (kings_get_blast() ? Bitboard(0) : pieces(COMMONER)))
-                        : (var->pawnsCanPetrify || type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0);
+      Bitboard blast = blast_on_capture() //is blast_on_capture() true?
+                       ? //yes
+                         (
+                           (attacks_bb<KING>(to) & //all the squares a king could attack, ANDed with
+                             (pieces() ^ //all the pieces on the board, XORed with
+                               (pawns_get_blast() ? Bitboard(0) : pieces(PAWN)) //nothing, if pawns_get_blast is true, otherwise positions of pawns
+                             ) //since pawns is a subset of pieces, XORing pieces with pawns will only remove pawns from blast
+                           ) 
+                           | to //ORed with the "to" square. this is after removing pawns from the blast. a pawn capturing will get blasted, even if pawns_get_blast is false
+                         ) 
+                         & //ANDed with
+                         (pieces() ^ //all the pieces on the board, XORed with
+                           (
+                             kings_get_blast() ? Bitboard(0) : pieces(COMMONER) //nothing, if kings_get_blast is true, otherwise positions of commoners (what kings are under the hood in atomic)
+                           ) //since commoners is a subset of pieces, XORing pieces with commoners will only remove commoners from blast
+                         ) // this is after ORing with the "to" square, so kings have immunity even when capturing
+                       : //otherwise petrifyOnCapture is on, since this section only executed if one or the other
+                         (var->pawnsCanPetrify || type_of(pc) != PAWN) ? square_bb(to) : Bitboard(0); //if pawnsCanPetrify, or a non-pawn piece, the "to" square, otherwise nothing
       while (blast)
       {
           Square bsq = pop_lsb(blast);
