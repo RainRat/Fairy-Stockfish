@@ -455,6 +455,7 @@ namespace {
 
     Variant* joust_variant() { //https://www.chessvariants.com/programs.dir/joust.html
         //This page mainly describes a variant where position on home row is randomized, but also a variant where they start in the centre(implemented here)
+        //A static start position will be memorizable by a human, so randomization recommended.
         Variant* v = chess_variant_base()->init();
         v->reset_pieces();
         v->add_piece(CUSTOM_PIECES, 'n', "mN"); //move as a Knight, but can't capture
