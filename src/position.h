@@ -208,7 +208,11 @@ public:
   bool connect_horizontal() const;
   bool connect_vertical() const;
   bool connect_diagonal() const;
+<<<<<<< HEAD
   std::vector<Direction> getConnectDirections() const;
+=======
+  const std::vector<Direction>& getConnectDirections() const;
+>>>>>>> master
 
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
@@ -978,7 +982,11 @@ inline bool Position::connect_diagonal() const {
   return var->connectDiagonal;
 }
 
+<<<<<<< HEAD
 inline std::vector<Direction> Position::getConnectDirections() const {
+=======
+inline const std::vector<Direction>& Position::getConnectDirections() const {
+>>>>>>> master
     assert(var != nullptr);
     return var->connect_directions;
 }
