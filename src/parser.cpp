@@ -353,6 +353,20 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         if (DoCheck && (idx == std::string::npos || idx2 == std::string::npos))
             std::cerr << "promotedPieceType - Invalid piece type: " << token << std::endl;
     }
+
+    // move transfer types
+    const auto& it_prom_pt = config.find("transferMoveType");
+    if (it_prom_pt != config.end())
+    {
+        char token;
+        size_t idx = 0, idx2 = 0;
+        std::stringstream ss(it_prom_pt->second);
+        while (   ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos && ss >> token
+               && ss >> token && (idx2 = (token == '-' ? 0 : v->pieceToChar.find(toupper(token)))) != std::string::npos)
+            v->transferMoveType[idx] = PieceType(idx2);
+        if (DoCheck && (idx == std::string::npos || idx2 == std::string::npos))
+            std::cerr << "transferMoveType - Invalid piece type: " << token << std::endl;
+    }
     parse_attribute("piecePromotionOnCapture", v->piecePromotionOnCapture);
     parse_attribute("mandatoryPawnPromotion", v->mandatoryPawnPromotion);
     parse_attribute("mandatoryPiecePromotion", v->mandatoryPiecePromotion);

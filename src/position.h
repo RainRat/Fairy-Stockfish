@@ -808,6 +808,11 @@ inline EnclosingRule Position::flip_enclosed_pieces() const {
   return var->flipEnclosedPieces;
 }
 
+inline PieceType Position::transfer_move_type(PieceType pt) const {
+  assert(var != nullptr);
+  return var->transferMoveType[pt];
+}
+
 inline Value Position::stalemate_value(int ply) const {
   assert(var != nullptr);
   if (var->stalematePieceCount)
