@@ -420,6 +420,7 @@ inline Bitboard checked(const Position& pos) {
 namespace FEN {
 
 enum FenValidation : int {
+    FEN_INVALID_POINTS_LEFT_INFO = -15,
     FEN_INVALID_COUNTING_RULE = -14,
     FEN_INVALID_CHECK_COUNT = -13,
     FEN_INVALID_NB_PARTS = -11,
@@ -930,7 +931,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     std::vector<std::string> startFenParts = get_fen_parts(v->startFen, ' ');
 
     // check for number of parts
-    const unsigned int maxNumberFenParts = 6 + v->checkCounting;
+    const unsigned int maxNumberFenParts = 6 + v->checkCounting + (v->payPointsToDrop * 2);
     if (fenParts.size() < 1 || fenParts.size() > maxNumberFenParts)
     {
         std::cerr << "Invalid number of fen parts. Expected: >= 1 and <= " << maxNumberFenParts
@@ -991,11 +992,11 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
     }
 
     // Castling and en passant can be skipped
-    bool skipCastlingAndEp = fenParts.size() >= 4 && fenParts.size() <= 5 && isdigit(fenParts[2][0]);
+    bool skipCastlingAndEp = fenParts.size() - (v->payPointsToDrop * 2) >= 4 && fenParts.size() - (v->payPointsToDrop * 2) <= 5 && isdigit(fenParts[2][0]);
 
     // 3) Part
     // check castling rights
-    if (fenParts.size() >= 3 && !skipCastlingAndEp && v->castling)
+    if (fenParts.size() - (v->payPointsToDrop * 2) >= 3 && !skipCastlingAndEp && v->castling)
     {
         std::array<std::string, 2> castlingInfoSplitted;
         if (fill_castling_info_splitted(fenParts[2], castlingInfoSplitted) == NOK)
@@ -1032,7 +1033,7 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
 
     // 4) Part
     // check en-passant square
-    if (fenParts.size() >= 4 && !skipCastlingAndEp)
+    if (fenParts.size() - (v->payPointsToDrop * 2) >= 4 && !skipCastlingAndEp)
     {
         if (v->doubleStep && (v->pieceTypes & PAWN))
         {
@@ -1045,14 +1046,14 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
 
     // 5) Part
     // check check count
-    unsigned int optionalInbetweenFields = 2 * !skipCastlingAndEp;
+    unsigned int optionalInbetweenFields = 2 * !skipCastlingAndEp; //optionalInbetweenFields = castling & ep
     unsigned int optionalTrailingFields = 0;
-    if (fenParts.size() >= 3 + optionalInbetweenFields && v->checkCounting && fenParts.size() % 2)
+    if (fenParts.size() >= 3 + (v->payPointsToDrop * 2) + optionalInbetweenFields && v->checkCounting && fenParts.size() % 2)
     {
         if (check_check_count(fenParts[2 + optionalInbetweenFields]) == NOK)
         {
             // allow valid lichess style check as alternative
-            if (fenParts.size() < 5 + optionalInbetweenFields || check_lichess_check_count(fenParts[fenParts.size() - 1]) == NOK)
+            if (fenParts.size() < 5  + (v->payPointsToDrop * 2) + optionalInbetweenFields || check_lichess_check_count(fenParts[fenParts.size() - 1 - (v->payPointsToDrop * 2)]) == NOK)
                 return FEN_INVALID_CHECK_COUNT;
             else
                 optionalTrailingFields++;
@@ -1063,18 +1064,41 @@ inline FenValidation validate_fen(const std::string& fen, const Variant* v, bool
 
     // 6) Part
     // check half move counter
-    if (fenParts.size() >= 3 + optionalInbetweenFields && !check_digit_field(fenParts[fenParts.size() - 2 - optionalTrailingFields]))
+    if (fenParts.size() >= 3 + optionalInbetweenFields + (v->payPointsToDrop * 2) && !check_digit_field(fenParts[fenParts.size() - 2 - optionalTrailingFields - (v->payPointsToDrop * 2)]))
     {
-        std::cerr << "Invalid half move counter: '" << fenParts[fenParts.size()-2] << "'." << std::endl;
+        std::cerr << "Invalid half move counter: '" << fenParts[fenParts.size()-2 - (v->payPointsToDrop * 2)] << "'." << std::endl;
         return FEN_INVALID_HALF_MOVE_COUNTER;
     }
 
     // 7) Part
     // check move counter
-    if (fenParts.size() >= 4 + optionalInbetweenFields && !check_digit_field(fenParts[fenParts.size() - 1 - optionalTrailingFields]))
+    if (fenParts.size() >= 4 + optionalInbetweenFields + (v->payPointsToDrop * 2) && !check_digit_field(fenParts[fenParts.size() - 1 - optionalTrailingFields - (v->payPointsToDrop * 2)]))
     {
-        std::cerr << "Invalid move counter: '" << fenParts[fenParts.size()-1] << "'." << std::endl;
+        std::cerr << "Invalid move counter: '" << fenParts[fenParts.size()-1 - (v->payPointsToDrop * 2)] << "'." << std::endl;
         return FEN_INVALID_MOVE_COUNTER;
+    }
+
+    // 8) Check for pointsCount (Setup Chess) between {}
+    std::string pointsCount = "";
+    if (v->payPointsToDrop) {
+        pointsCount = fenParts[fenParts.size() - 2]+ " " + fenParts[fenParts.size() - 1];
+
+        if (pointsCount.front() != '{' || pointsCount.back() != '}') {
+            return FEN_INVALID_POINTS_LEFT_INFO;
+        }
+
+        std::string content = pointsCount.substr(1, pointsCount.size() - 2);  // remove brackets
+        std::vector<std::string> points = get_fen_parts(content, ' ');
+
+        if (points.size() != 2) {
+            return FEN_INVALID_POINTS_LEFT_INFO;
+        }
+
+        for (const std::string& part : points) {
+            if (!check_digit_field(part)) {
+                return FEN_INVALID_POINTS_LEFT_INFO;
+            }
+        }
     }
 
     return FEN_OK;

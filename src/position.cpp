@@ -518,6 +518,15 @@ Position& Position::set(const Variant* v, const string& fenStr, bool isChess960,
       }
   }
 
+if (var->payPointsToDrop)
+{
+    char brace;
+    ss >> brace;
+    ss >> st->pointsCount[WHITE];
+    ss >> st->pointsCount[BLACK];
+    ss >> brace;  //Probably not needed now, but maybe if another FEN extension.
+}
+
   chess960 = isChess960 || v->chess960;
   tsumeMode = Options["TsumeMode"];
   thisThread = th;
@@ -816,6 +825,10 @@ string Position::fen(bool sfen, bool showPromoted, int countStarted, std::string
 
   ss << " " << 1 + (gamePly - (sideToMove == BLACK)) / 2;
 
+  if (variant()->payPointsToDrop)
+  {
+      ss << " {" << st->pointsCount[WHITE] << " " << st->pointsCount[BLACK] << "}";
+  }
   return ss.str();
 }
 
@@ -1085,6 +1098,18 @@ bool Position::legal(Move m) const {
           // Drop resulting in same-colored bishops
           if (popcount((DarkSquares & to ? DarkSquares : ~DarkSquares) & pieces(us, BISHOP)) + 1 > (count_with_hand(us, BISHOP) + 1) / 2)
               return false;
+  }
+
+
+  if (pos.variant()->passUntilSetup) {
+    //If opponent has pieces to drop, but you don't, keep passing until all placed.
+    if (!pos.count_in_hand(Us, ALL_PIECES) && pos.count_in_hand(~Us, ALL_PIECES)) {
+      return false;
+    }
+  }
+
+  if (variant()->payPointsToDrop && (type_of(m) == DROP) && (pointsCount[us] < variant()->piecePoints[type_of(moved_piece(m))])) {
+    return false;  // Not enough points to drop this piece, so the move is illegal
   }
 
   // No legal moves from target square

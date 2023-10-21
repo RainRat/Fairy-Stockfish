@@ -367,6 +367,7 @@ private:
   bool tsumeMode;
   bool chess960;
   int pieceCountInHand[COLOR_NB][PIECE_TYPE_NB];
+  int pointsCount[COLOR_NB];
   int virtualPieces;
   Bitboard promotedPieces;
   void add_to_hand(Piece pc);
@@ -787,7 +788,7 @@ inline Bitboard Position::diagonal_lines() const {
 
 inline bool Position::pass() const {
   assert(var != nullptr);
-  return var->pass || var->passOnStalemate;
+  return var->pass || var->passOnStalemate || var->passUntilSetup;
 }
 
 inline bool Position::pass_on_stalemate() const {
@@ -1500,17 +1501,55 @@ inline void Position::remove_from_hand(Piece pc) {
 
 inline void Position::drop_piece(Piece pc_hand, Piece pc_drop, Square s) {
   assert(can_drop(color_of(pc_hand), type_of(pc_hand)) || var->twoBoards);
+
+  Color c = color_of(pc_hand);
+  PieceType pt = type_of(pc_hand);
+
+  if (variant()->payPointsToDrop) {
+    int dropPoints = variant()->piecePoints[pt];
+    pointsCount[c] -= dropPoints;
+
+    // Special case for piece with 0 points
+    if (dropPoints == 0) {
+      remove_from_hand(pc_hand);
+    } else {
+      for (int i = 0; i < PIECE_TYPE_NB; ++i) {
+        if (pointsCount[c] < variant()->piecePoints[i]) {
+          pieceCountInHand[c][i] = 0; // Remove piece from hand
+        }
+      }
+    }
+  } else {
+    remove_from_hand(pc_hand);
+  }
+
   put_piece(pc_drop, s, pc_drop != pc_hand, pc_drop != pc_hand ? pc_hand : NO_PIECE);
-  remove_from_hand(pc_hand);
-  virtualPieces += (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
+  virtualPieces += (pieceCountInHand[c][pt] < 0);
 }
 
+
 inline void Position::undrop_piece(Piece pc_hand, Square s) {
-  virtualPieces -= (pieceCountInHand[color_of(pc_hand)][type_of(pc_hand)] < 0);
+  Color c = color_of(pc_hand);
+  PieceType pt = type_of(pc_hand);
+
+  virtualPieces -= (pieceCountInHand[c][pt] < 0);
   remove_piece(s);
   board[s] = NO_PIECE;
+
   add_to_hand(pc_hand);
-  assert(can_drop(color_of(pc_hand), type_of(pc_hand)) || var->twoBoards);
+
+  if (variant()->payPointsToDrop) {
+    int dropPoints = variant()->piecePoints[pt];
+    pointsCount[c] += dropPoints;
+
+    // Restore pieces to hand based on the available points
+    for (int i = 0; i < PIECE_TYPE_NB; ++i) {
+      if (pointsCount[c] >= variant()->piecePoints[i] && pieceCountInHand[c][pt] == 0 && variant()->piecePoints[i]!=0) {
+        pieceCountInHand[c][i]++; // Add piece back to hand
+      }
+    }
+  }
+  assert(can_drop(c, pt) || var->twoBoards);
 }
 
 inline bool Position::can_drop(Color c, PieceType pt) const {

@@ -306,6 +306,22 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         }
     }
 
+    // piece points (for Setup Chess)
+    const auto& pv = config.find("piecePoints");
+    if (pv != config.end())
+    {
+        char token;
+        size_t idx = 0;
+        std::stringstream ss(pv->second);
+        while (!ss.eof() && ss >> token && (idx = v->pieceToChar.find(toupper(token))) != std::string::npos
+                         && ss >> token && ss >> v->piecePoints[idx]) {}
+        if (DoCheck && idx == std::string::npos)
+            std::cerr << "piecePoints - Invalid piece type: " << token << std::endl;
+        else if (DoCheck && !ss.eof())
+            std::cerr << "piecePoints - Invalid piece points for type: " << v->pieceToChar[idx] << std::endl;
+    }
+
+
     // Parse deprecate values for backwards compatibility
     Rank promotionRank = RANK_8;
     if (parse_attribute<false>("promotionRank", promotionRank))
@@ -443,6 +459,9 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("dropPromoted", v->dropPromoted);
     parse_attribute("dropNoDoubled", v->dropNoDoubled, v->pieceToChar);
     parse_attribute("dropNoDoubledCount", v->dropNoDoubledCount);
+    parse_attribute("freeDrops", v->freeDrops);
+    parse_attribute("payPointsToDrop", v->payPointsToDrop);
+    parse_attribute("passUntilSetup", v->passUntilSetup);
     parse_attribute("immobilityIllegal", v->immobilityIllegal);
     parse_attribute("gating", v->gating);
     parse_attribute("wallingRule", v->wallingRule);
