@@ -2356,9 +2356,9 @@ void Position::undo_move(Move m) {
   {
       //It's ok to just loop through all, not taking into account immunities/pawnness
       //because we'll just not find the piece in unpromotedBycatch.
-      //Same if remove_connect_n is true, just loop through all squares because there's no other indication
-      //other than unpromotedBycatch of where removed pieces were.
-      Bitboard blast = (attacks_bb<KING>(to) | to) || ( remove_connect_n() > 0 ) ? AllSquares : 0;
+      //Same if remove_connect_n is true, just loop through all empty squares because there's no other
+      //indication other than unpromotedBycatch of where removed pieces were.
+      Bitboard blast = (attacks_bb<KING>(to) | to) || ( remove_connect_n() > 0 ) ? ~pieces() : 0;
       while (blast)
       {
           Square bsq = pop_lsb(blast);
