@@ -51,6 +51,7 @@ struct StateInfo {
   int    pliesFromNull;
   int    countingPly;
   int    countingLimit;
+  int    pointsCount[COLOR_NB];
   CheckCount checksRemaining[COLOR_NB];
   Bitboard epSquares;
   Square castlingKingSquare[COLOR_NB];
@@ -140,8 +141,13 @@ public:
   bool mandatory_piece_promotion() const;
   bool piece_demotion() const;
   bool blast_on_capture() const;
+  bool blast_on_move() const;
+  bool blast_promotion() const;
+  bool blast_diagonals() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
+  int remove_connect_n() const;
+  bool remove_connect_n_by_type() const;
   bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -212,6 +218,9 @@ public:
   const std::vector<Direction>& getConnectDirections() const;
   int connect_nxn() const;
   int collinear_n() const;
+  bool points_counting() const;
+  PointsRule points_rule_captures() const;
+  int points_goal() const;
 
   CheckCount checks_remaining(Color c) const;
   MaterialCounting material_counting() const;
@@ -496,6 +505,21 @@ inline bool Position::blast_on_capture() const {
   return var->blastOnCapture;
 }
 
+inline bool Position::blast_on_move() const {
+  assert(var != nullptr);
+  return var->blastOnMove;
+}
+
+inline bool Position::blast_promotion() const {
+  assert(var != nullptr);
+  return var->blastPromotion;
+}
+
+inline bool Position::blast_diagonals() const {
+  assert(var != nullptr);
+  return var->blastDiagonals;
+}
+
 inline PieceSet Position::blast_immune_types() const {
   assert(var != nullptr);
   return var->blastImmuneTypes;
@@ -504,6 +528,16 @@ inline PieceSet Position::blast_immune_types() const {
 inline PieceSet Position::mutually_immune_types() const {
   assert(var != nullptr);
   return var->mutuallyImmuneTypes;
+}
+
+inline int Position::remove_connect_n() const {
+  assert(var != nullptr);
+  return var->removeConnectN;
+}
+
+inline bool Position::remove_connect_n_by_type() const {
+  assert(var != nullptr);
+  return var->removeConnectNByType;
 }
 
 inline bool Position::endgame_eval() const {
@@ -1082,6 +1116,21 @@ inline MaterialCounting Position::material_counting() const {
 inline CountingRule Position::counting_rule() const {
   assert(var != nullptr);
   return var->countingRule;
+}
+
+inline bool Position::points_counting() const {
+  assert(var != nullptr);
+  return var->pointsCounting;
+}
+
+inline PointsRule Position::points_rule_captures() const {
+  assert(var != nullptr);
+  return var->pointsRuleCaptures;
+}
+
+inline int Position::points_goal() const {
+  assert(var != nullptr);
+  return var->pointsGoal;
 }
 
 inline bool Position::is_immediate_game_end() const {
