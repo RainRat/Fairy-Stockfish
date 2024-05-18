@@ -144,6 +144,7 @@ public:
   bool blast_on_move() const;
   bool blast_promotion() const;
   bool blast_diagonals() const;
+  bool blast_center() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
   int remove_connect_n() const;
@@ -520,10 +521,34 @@ inline bool Position::blast_diagonals() const {
   return var->blastDiagonals;
 }
 
+inline bool Position::blast_center() const {
+  assert(var != nullptr);
+  return var->blastCenter;
+}
+
 inline PieceSet Position::blast_immune_types() const {
   assert(var != nullptr);
   return var->blastImmuneTypes;
 }
+
+inline Bitboard Position::blast_pattern(Square to) const {
+    Bitboard blastPattern = blast_diagonals() ?  attacks_bb<KING>(to) : attacks_bb<WAZIR>(to);
+    return blastPattern
+}
+
+inline Bitboard Position::blast_squares(Square to) const {
+    Bitboard blastImmune = 0;
+    for (PieceSet ps = blast_immune_types(); ps;) {
+        PieceType pt = pop_lsb(ps);
+        blastImmune |= pieces(pt);
+    }
+    Bitboard blastPattern = blast_pattern(to);
+    Bitboard relevantPieces = (pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN);
+    Bitboard blastArea = (blastPattern & relevantPieces) | (blast_center() ? to | Bitboard(0));
+
+    return blastArea & (pieces() ^ blastImmune);
+}
+
 
 inline PieceSet Position::mutually_immune_types() const {
   assert(var != nullptr);
@@ -898,7 +923,7 @@ inline Value Position::stalemate_value(int ply) const {
       while (pseudoRoyals)
       {
           Square sr = pop_lsb(pseudoRoyals);
-          if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+          if (  !(blast_on_capture() && (pseudoRoyalsTheirs & blast_pattern(sr)))
               && attackers_to(sr, ~sideToMove))
               return convert_mate_value(var->checkmateValue, ply);
       }
@@ -911,7 +936,7 @@ inline Value Position::stalemate_value(int ply) const {
           {
               Square sr = pop_lsb(pseudoRoyalCandidates);
               // Touching pseudo-royal pieces are immune
-              if (!(  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+              if (!(  !(blast_on_capture() && (pseudoRoyalsTheirs & blast_pattern(sr)))
                     && attackers_to(sr, ~sideToMove)))
                   allCheck = false;
           }

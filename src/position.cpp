@@ -1010,11 +1010,23 @@ Bitboard Position::checked_pseudo_royals(Color c) const {
   Bitboard checked = 0;
   Bitboard pseudoRoyals = st->pseudoRoyals & pieces(c);
   Bitboard pseudoRoyalsTheirs = st->pseudoRoyals & pieces(~c);
+
+  //If their royal pieces are immune to blasts, then their checks are real threats
+  //even if their royal is in the blast.
+  Bitboard blastImmune = 0;
+  for (PieceSet ps = blast_immune_types(); ps;) {
+      PieceType pt = pop_lsb(ps);
+      blastImmune |= pieces(pt);
+  }
+  pseudoRoyalsTheirs = pseudoRoyalsTheirs &(!blastImmune);
+  //Same as above, if blasts promote.
+  if (blast_promotion()) pseudoRoyalsTheirs = Bitboard(0);
+
   while (pseudoRoyals)
   {
       Square sr = pop_lsb(pseudoRoyals);
       // skip if capturing this piece would blast any of the attacker's pseudo-royal pieces
-      if (!(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+      if (!(blast_on_capture() && (pseudoRoyalsTheirs & blast_pattern(sr)))
           && attackers_to(sr, ~c))
           checked |= sr;
   }
@@ -1026,7 +1038,7 @@ Bitboard Position::checked_pseudo_royals(Color c) const {
       while (pseudoRoyalCandidates)
       {
           Square sr = pop_lsb(pseudoRoyalCandidates);
-          if (!(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+          if (!(blast_on_capture() && (pseudoRoyalsTheirs & blast_pattern(sr)))
               && attackers_to(sr, ~c))
               allAttacked |= sr;
           else
@@ -1132,7 +1144,7 @@ bool Position::legal(Move m) const {
           // Pseudo-royal king
           if (st->pseudoRoyals & from)
               for (Square s = from; s != kto; s += step)
-                  if (  !(blast_on_capture() && (attacks_bb<KING>(s) & st->pseudoRoyals & pieces(~sideToMove)))
+                  if (  !(blast_on_capture() && (blast_pattern(s) & st->pseudoRoyals & pieces(~sideToMove)))
                       && attackers_to(s, occupied, ~us))
                       return false;
           // Move the rook
@@ -1142,7 +1154,7 @@ bool Position::legal(Move m) const {
       if (type_of(m) == EN_PASSANT)
           occupied &= ~square_bb(capture_square(kto));
       if (capture(m) && blast_on_capture())
-          occupied &= ~((attacks_bb<KING>(kto) & ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | kto);
+          occupied &= ~blast_squares(kto);
       // Petrifying a pseudo-royal piece is illegal
       if (capture(m) && (var->petrifyOnCaptureTypes & type_of(moved_piece(m))) && (st->pseudoRoyals & from))
           return false;
@@ -1172,7 +1184,7 @@ bool Position::legal(Move m) const {
           {
               Square sr = pop_lsb(pseudoRoyals);
               // Touching pseudo-royal pieces are immune
-              if (  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+              if (  !(blast_on_capture() && (pseudoRoyalsTheirs & blast_pattern(sr)))
                   && (attackers_to(sr, occupied, ~us) & attackerCandidatesTheirs))
                   return false;
           }
@@ -1189,7 +1201,7 @@ bool Position::legal(Move m) const {
           {
               Square sr = pop_lsb(pseudoRoyalCandidates);
               // Touching pseudo-royal pieces are immune
-              if (!(  !(blast_on_capture() && (pseudoRoyalsTheirs & attacks_bb<KING>(sr)))
+              if (!(  !(blast_on_capture() && (pseudoRoyalsTheirs & blast_pattern(sr)))
                     && (attackers_to(sr, occupied, ~us) & attackerCandidatesTheirs)))
                   allCheck = false;
           }
@@ -2012,8 +2024,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           PieceType pt = pop_lsb(ps);
           blastImmune |= pieces(pt);
       };
-      Bitboard blast = blast_on_capture() ? (((blast_diagonals() ? attacks_bb<KING>(to) :attacks_bb<WAZIR>(to))& ((pieces(WHITE) | pieces(BLACK)) ^ pieces(PAWN))) | to)
-                       & (pieces() ^ blastImmune) : var->petrifyOnCaptureTypes & type_of(pc) ? square_bb(to) : Bitboard(0);
+      Bitboard blast = (blast_on_capture() || blast_on_move()) ? blast_squares(to)
+          : var->petrifyOnCaptureTypes & type_of(pc) ? square_bb(to) : Bitboard(0);
       while (blast)
       {
           Square bsq = pop_lsb(blast);
@@ -2358,7 +2370,7 @@ void Position::undo_move(Move m) {
       //because we'll just not find the piece in unpromotedBycatch.
       //Same if remove_connect_n is true, just loop through all empty squares because there's no other
       //indication other than unpromotedBycatch of where removed pieces were.
-      Bitboard blast = (attacks_bb<KING>(to) | to) || ( remove_connect_n() > 0 ) ? ~pieces() : 0;
+      Bitboard blast = (blast_pattern(to) | to) || ( remove_connect_n() > 0 ) ? ~pieces() : 0;
       while (blast)
       {
           Square bsq = pop_lsb(blast);
@@ -2611,7 +2623,7 @@ Value Position::blast_see(Move m) const {
   Square to = to_sq(m);
   Color us = color_of(moved_piece(m));
   Bitboard fromto = type_of(m) == DROP ? square_bb(to) : from | to;
-  Bitboard blast = ((attacks_bb<KING>(to) & ~pieces(PAWN)) | fromto) & (pieces(WHITE) | pieces(BLACK));
+  Bitboard blast = blast_squares(to);
 
   Value result = VALUE_ZERO;
 

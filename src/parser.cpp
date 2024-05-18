@@ -442,6 +442,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
     parse_attribute("blastOnMove", v->blastOnMove);
     parse_attribute("blastPromotion", v->blastPromotion);
     parse_attribute("blastDiagonals", v->blastDiagonals);
+    parse_attribute("blastCenter", v->blastCenter);
     parse_attribute("blastImmuneTypes", v->blastImmuneTypes, v->pieceToChar);
     parse_attribute("mutuallyImmuneTypes", v->mutuallyImmuneTypes, v->pieceToChar);
     parse_attribute("petrifyOnCaptureTypes", v->petrifyOnCaptureTypes, v->pieceToChar);
@@ -645,6 +646,8 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
                 std::cerr << "Can not use kings with blastOnCapture." << std::endl;
             if (v->flipEnclosedPieces)
                 std::cerr << "Can not use kings with flipEnclosedPieces." << std::endl;
+            if (v->removeConnectN)
+                std::cerr << "Can not use kings with removeConnectN." << std::endl;
             if (v->wallingRule==DUCK)
                 std::cerr << "Can not use kings with wallingRule = duck." << std::endl;
             // We can not fully check support for custom king movements at this point,
@@ -667,7 +670,7 @@ Variant* VariantParser<DoCheck>::parse(Variant* v) {
         // 3. Moving a (pseudo-)royal mutuallyImmuneType into a square threatened by the same type is legal.
         if ((v->extinctionPseudoRoyal) || (v->pieceTypes & KING))
         {
-            if (v->blastImmuneTypes)
+            if (v->blastImmuneTypes) //I may have this solved now.
                 std::cerr << "Can not use kings or pseudo-royal with blastImmuneTypes." << std::endl;
             if (v->mutuallyImmuneTypes)
                 std::cerr << "Can not use kings or pseudo-royal with mutuallyImmuneTypes." << std::endl;
