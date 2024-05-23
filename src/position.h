@@ -142,6 +142,10 @@ public:
   bool blast_on_capture() const;
   PieceSet blast_immune_types() const;
   PieceSet mutually_immune_types() const;
+  bool surround_capture_opposite() const;
+  bool surround_capture_edge() const;
+  Bitboard surround_capture_max_region() const;
+  Bitboard surround_capture_hostile_region() const;
   bool endgame_eval() const;
   Bitboard double_step_region(Color c) const;
   Bitboard triple_step_region(Color c) const;
@@ -504,6 +508,26 @@ inline PieceSet Position::blast_immune_types() const {
 inline PieceSet Position::mutually_immune_types() const {
   assert(var != nullptr);
   return var->mutuallyImmuneTypes;
+}
+
+inline bool Position::surround_capture_opposite() const {
+  assert(var != nullptr);
+  return var->surroundCaptureOpposite;
+}
+
+inline bool Position::surround_capture_edge() const {
+  assert(var != nullptr);
+  return var->surroundCaptureEdge;
+}
+
+inline Bitboard Position::surround_capture_max_region() const {
+  assert(var != nullptr);
+  return var->surroundCaptureMaxRegion;
+}
+
+inline Bitboard Position::surround_capture_hostile_region() const {
+  assert(var != nullptr);
+  return var->surroundCaptureHostileRegion;
 }
 
 inline bool Position::endgame_eval() const {
