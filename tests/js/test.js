@@ -282,6 +282,27 @@ describe('board.variationSan(uciMoves, notation, moveNumbers)', function () {
   });
 });
 
+describe('board.stateStackSize()', function () {
+  it("it remains aligned with the number of real moves after repeated variationSan calls", () => {
+    let board = new ffish.Board();
+    const actualMoves = ["e2e4", "e7e5", "g1f3"];
+    actualMoves.forEach(move => {
+      chai.expect(board.push(move)).to.equal(true);
+    });
+
+    const expectedStates = actualMoves.length + 1;
+    chai.expect(board.stateStackSize()).to.equal(expectedStates);
+
+    const variationLine = "g8f6 d2d3 Bf8c5";
+    for (let i = 0; i < 5; ++i) {
+      chai.expect(board.variationSan(variationLine)).to.not.equal("");
+      chai.expect(board.stateStackSize()).to.equal(expectedStates);
+    }
+
+    board.delete();
+  });
+});
+
 describe('board.turn()', function () {
   it("it returns the side to move", () => {
     let board = new ffish.Board();
