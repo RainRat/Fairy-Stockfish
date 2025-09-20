@@ -58,6 +58,11 @@ int main(int argc, char* argv[]) {
   Threads.set(0);
   variants.clear_all();
   pieceMap.clear_all();
-  delete XBoard::stateMachine;
+  if (XBoard::stateMachine)
+  {
+      XBoard::stateMachine->cancel_ponder_worker();
+      delete XBoard::stateMachine;
+      XBoard::stateMachine = nullptr;
+  }
   return 0;
 }
