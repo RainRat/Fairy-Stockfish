@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import faulthandler
+import os
+import pathlib
+import shutil
+import struct
+import subprocess
+import tempfile
 import unittest
 import pyffish as sf
 
@@ -1282,7 +1288,77 @@ class TestPyffish(unittest.TestCase):
         fen = "rnbqkbnr/p1p2ppp/8/Pp1pp3/4P3/8/1PPP1PPP/RNBQKBNR w KQkq b6 0 1"
         result = sf.get_fog_fen(fen, "fogofwar")
         self.assertEqual(result, "********/********/2******/Pp*p***1/4P3/4*3/1PPP1PPP/RNBQKBNR w KQkq b6 0 1")
-        
+
+
+class NnueHeaderValidationTests(unittest.TestCase):
+    VERSION = 0x7AF32F20
+    HASH_VALUE = 1007697522
+    MAX_DESCRIPTION_LENGTH = 4096
+
+    @classmethod
+    def setUpClass(cls):
+        cls.root_dir = pathlib.Path(__file__).resolve().parent
+        binary_name = "stockfish.exe" if os.name == "nt" else "stockfish"
+        cls.stockfish_path = cls.root_dir / "src" / binary_name
+
+        if not cls.stockfish_path.exists():
+            if shutil.which("make") is None:
+                raise unittest.SkipTest("make is required to build the Stockfish binary")
+
+            subprocess.run(["make", "build"], cwd=cls.root_dir / "src", check=True)
+
+        if not cls.stockfish_path.exists():
+            raise unittest.SkipTest("Stockfish binary is not available for NNUE header tests")
+
+    def run_stockfish_with_net(self, payload: bytes) -> subprocess.CompletedProcess:
+        with tempfile.NamedTemporaryFile(prefix="chess-", suffix=".nnue", delete=False) as tmp:
+            tmp.write(payload)
+            tmp_path = pathlib.Path(tmp.name)
+
+        try:
+            commands = "\n".join(
+                [
+                    "uci",
+                    "setoption name UCI_Variant value chess",
+                    "setoption name Use NNUE value true",
+                    f"setoption name EvalFile value {tmp_path.as_posix()}",
+                    "isready",
+                    "go depth 1",
+                    "quit",
+                ]
+            ) + "\n"
+
+            result = subprocess.run(
+                [str(self.stockfish_path)],
+                input=commands,
+                text=True,
+                capture_output=True,
+                timeout=10,
+            )
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+        return result
+
+    def assert_header_failure(self, payload: bytes, message: str) -> None:
+        result = self.run_stockfish_with_net(payload)
+        self.assertNotEqual(
+            result.returncode,
+            0,
+            f"{message}: expected a non-zero exit code. stdout={result.stdout!r} stderr={result.stderr!r}",
+        )
+        self.assertIn("was not loaded successfully", result.stdout, message)
+
+    def test_oversized_description_rejected(self):
+        oversized_size = self.MAX_DESCRIPTION_LENGTH + 1
+        payload = struct.pack("<III", self.VERSION, self.HASH_VALUE, oversized_size)
+        self.assert_header_failure(payload, "Oversized network description should be rejected")
+
+    def test_truncated_description_rejected(self):
+        declared_size = 16
+        payload = struct.pack("<III", self.VERSION, self.HASH_VALUE, declared_size) + b"abcd"
+        self.assert_header_failure(payload, "Truncated network description should be rejected")
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
