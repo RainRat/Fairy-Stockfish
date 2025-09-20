@@ -100,7 +100,8 @@ namespace Stockfish::Eval::NNUE {
     size        = read_little_endian<std::uint32_t>(stream);
     if (!stream || version != Version) return false;
     desc->resize(size);
-    stream.read(&(*desc)[0], size);
+    if (size > 0)
+      stream.read(desc->data(), size);
     return !stream.fail();
   }
 
@@ -110,7 +111,8 @@ namespace Stockfish::Eval::NNUE {
     write_little_endian<std::uint32_t>(stream, Version);
     write_little_endian<std::uint32_t>(stream, hashValue);
     write_little_endian<std::uint32_t>(stream, desc.size());
-    stream.write(&desc[0], desc.size());
+    if (!desc.empty())
+      stream.write(desc.data(), desc.size());
     return !stream.fail();
   }
 
