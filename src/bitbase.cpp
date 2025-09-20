@@ -17,6 +17,7 @@
 */
 
 #include <cassert>
+#include <queue>
 #include <vector>
 #include <bitset>
 
@@ -59,7 +60,33 @@ namespace {
     KPKPosition() = default;
     explicit KPKPosition(unsigned idx);
     operator Result() const { return result; }
-    Result classify(const std::vector<KPKPosition>& db);
+    template <typename Callback>
+    void for_each_successor(Callback&& cb) const {
+
+      Bitboard moves = attacks_bb<KING>(ksq[stm]);
+
+      while (moves) {
+          Square to = pop_lsb(moves);
+          cb(stm == WHITE ? index(BLACK, ksq[BLACK], to, psq)
+                          : index(WHITE, to, ksq[WHITE], psq));
+      }
+
+      if (stm == WHITE) {
+          if (rank_of(psq) < RANK_7)
+              cb(index(BLACK, ksq[BLACK], ksq[WHITE], psq + NORTH));
+
+          if (   rank_of(psq) == RANK_2
+              && psq + NORTH != ksq[WHITE]
+              && psq + NORTH != ksq[BLACK])
+              cb(index(BLACK, ksq[BLACK], ksq[WHITE], psq + NORTH + NORTH));
+      }
+    }
+
+    Result classify(const std::vector<KPKPosition>& db,
+                    const std::vector<std::vector<unsigned>>& predecessors,
+                    std::queue<unsigned>& frontier,
+                    std::vector<bool>& inQueue,
+                    unsigned idx);
 
     Color stm;
     Square ksq[COLOR_NB], psq;
@@ -84,17 +111,39 @@ void Bitbases::init() {
 #endif
 
   std::vector<KPKPosition> db(MAX_INDEX);
-  unsigned idx, repeat = 1;
+  unsigned idx;
 
   // Initialize db with known win / draw positions
+  std::vector<std::vector<unsigned>> predecessors(MAX_INDEX);
+  std::queue<unsigned> frontier;
+  std::vector<bool> inQueue(MAX_INDEX, false);
+
   for (idx = 0; idx < MAX_INDEX; ++idx)
+  {
       db[idx] = KPKPosition(idx);
 
-  // Iterate through the positions until none of the unknown positions can be
-  // changed to either wins or draws (15 cycles needed).
-  while (repeat)
-      for (repeat = idx = 0; idx < MAX_INDEX; ++idx)
-          repeat |= (db[idx] == UNKNOWN && db[idx].classify(db) != UNKNOWN);
+      db[idx].for_each_successor([&](unsigned child) {
+          predecessors[child].push_back(idx);
+      });
+
+      if (db[idx] == WIN || db[idx] == DRAW)
+      {
+          frontier.push(idx);
+          inQueue[idx] = true;
+      }
+  }
+
+  // Propagate newly discovered wins and draws through the predecessor graph.
+  while (!frontier.empty())
+  {
+      unsigned current = frontier.front();
+      frontier.pop();
+      inQueue[current] = false;
+
+      for (unsigned pred : predecessors[current])
+          if (db[pred] == UNKNOWN)
+              db[pred].classify(db, predecessors, frontier, inQueue, pred);
+  }
 
   // Fill the bitbase with the decisive results
   for (idx = 0; idx < MAX_INDEX; ++idx)
@@ -137,7 +186,11 @@ namespace {
         result = UNKNOWN;
   }
 
-  Result KPKPosition::classify(const std::vector<KPKPosition>& db) {
+  Result KPKPosition::classify(const std::vector<KPKPosition>& db,
+                               const std::vector<std::vector<unsigned>>& predecessors,
+                               std::queue<unsigned>& frontier,
+                               std::vector<bool>& inQueue,
+                               unsigned idx) {
 
     // White to move: If one move leads to a position classified as WIN, the result
     // of the current position is WIN. If all moves lead to positions classified
@@ -152,24 +205,26 @@ namespace {
     const Result Bad  = (stm == WHITE ? DRAW  : WIN);
 
     Result r = INVALID;
-    Bitboard b = attacks_bb<KING>(ksq[stm]);
+    for_each_successor([&](unsigned child) {
+        r |= db[child];
+    });
 
-    while (b)
-        r |= stm == WHITE ? db[index(BLACK, ksq[BLACK], pop_lsb(b), psq)]
-                          : db[index(WHITE, pop_lsb(b), ksq[WHITE], psq)];
+    Result newResult = r & Good ? Good : r & UNKNOWN ? UNKNOWN : Bad;
 
-    if (stm == WHITE)
+    if (newResult != result)
     {
-        if (rank_of(psq) < RANK_7)      // Single push
-            r |= db[index(BLACK, ksq[BLACK], ksq[WHITE], psq + NORTH)];
+        result = newResult;
 
-        if (   rank_of(psq) == RANK_2   // Double push
-            && psq + NORTH != ksq[WHITE]
-            && psq + NORTH != ksq[BLACK])
-            r |= db[index(BLACK, ksq[BLACK], ksq[WHITE], psq + NORTH + NORTH)];
+        if (result != UNKNOWN)
+            for (unsigned pred : predecessors[idx])
+                if (!inQueue[pred])
+                {
+                    frontier.push(pred);
+                    inQueue[pred] = true;
+                }
     }
 
-    return result = r & Good  ? Good  : r & UNKNOWN ? UNKNOWN : Bad;
+    return result;
   }
 
 } // namespace
