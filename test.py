@@ -315,6 +315,18 @@ class TestPyffish(unittest.TestCase):
         result = sf.set_option("UCI_Variant", "capablanca")
         self.assertIsNone(result)
 
+    def test_load_variant_config_cambodian_counting_rule(self):
+        config = (
+            "[cambodian_count_rule_variant:makruk]\n"
+            "countingRule = cambodian\n"
+        )
+        try:
+            sf.load_variant_config(config)
+        except sf.error as err:
+            self.fail(f"load_variant_config raised an exception: {err}")
+
+        self.assertEqual(sf.start_fen("cambodian_count_rule_variant"), MAKRUK)
+
     def test_two_boards(self):
         self.assertFalse(sf.two_boards("chess"))
         self.assertTrue(sf.two_boards("bughouse"))
