@@ -211,17 +211,20 @@ public:
 
   std::string variation_san(std::string uciMoves, Notation notation, bool moveNumbers) {
     std::stringstream ss(uciMoves);
-    StateListPtr tempStates;
     std::vector<Move> moves;
     std::string variationSan = "";
     std::string uciMove;
     bool first = true;
+    bool invalidMoveEncountered = false;
+    size_t statesAdded = 0;
 
     while (std::getline(ss, uciMove, ' ')) {
       const Move move = UCI::to_move(this->pos, uciMove);
-      if (is_move_none<true>(move, uciMove, pos))
-        return "";
-      moves.emplace_back(UCI::to_move(this->pos, uciMove));
+      if (is_move_none<true>(move, uciMove, pos)) {
+        invalidMoveEncountered = true;
+        break;
+      }
+      moves.emplace_back(move);
       if (first) {
         first = false;
         if (moveNumbers) {
@@ -243,13 +246,21 @@ public:
         variationSan += SAN::move_to_san(this->pos, moves.back(), Notation(notation));
       }
       states->emplace_back();
+      ++statesAdded;
       pos.do_move(moves.back(), states->back());
     }
 
     // recover initial state
-    for(auto rIt = std::rbegin(moves); rIt != std::rend(moves); ++rIt) {
+    for (auto rIt = std::rbegin(moves); rIt != std::rend(moves); ++rIt)
       pos.undo_move(*rIt);
+
+    while (statesAdded > 0) {
+      states->pop_back();
+      --statesAdded;
     }
+
+    if (invalidMoveEncountered)
+      return "";
 
     return variationSan;
   }
@@ -269,6 +280,10 @@ public:
 
   int game_ply() const {
     return pos.game_ply();
+  }
+
+  int state_stack_size() const {
+    return static_cast<int>(states->size());
   }
 
   bool has_insufficient_material(bool turn) const {
@@ -712,6 +727,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .function("fullmoveNumber", &Board::fullmove_number)
     .function("halfmoveClock", &Board::halfmove_clock)
     .function("gamePly", &Board::game_ply)
+    .function("stateStackSize", &Board::state_stack_size)
     .function("hasInsufficientMaterial", &Board::has_insufficient_material)
     .function("isInsufficientMaterial", &Board::is_insufficient_material)
     .function("isGameOver", select_overload<bool() const>(&Board::is_game_over))
