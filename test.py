@@ -99,6 +99,7 @@ customPiece1 = a:lhN
 customPiece2 = b:rhN
 customPiece3 = c:hlN
 customPiece4 = d:hrN
+customPiece5 = e:hW
 startFen = 7/7/7/3A3/7/7/7 w - - 0 1
 
 [cannonshogi:shogi]
@@ -415,6 +416,8 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(['d4e2', 'd4b3', 'd4f5', 'd4c6'], result)
         result = sf.legal_moves("betzatest", "7/7/7/3D3/7/7/7 w - - 0 1", [])
         self.assertEqual(['d4c2', 'd4f3', 'd4b5', 'd4e6'], result)
+        result = sf.legal_moves("betzatest", "7/7/7/3E3/7/7/7 w - - 0 1", [])
+        self.assertEqual(['d4c4', 'd4e4'], result)
 
 
     def test_castling(self):
