@@ -157,10 +157,14 @@ public:
     return true;
   }
 
-  void pop() {
-    pos.undo_move(this->moveStack.back());
-    moveStack.pop_back();
-    states->pop_back();
+  bool pop() {
+    if (this->moveStack.empty())
+      return false;
+
+    this->pos.undo_move(this->moveStack.back());
+    this->moveStack.pop_back();
+    this->states->pop_back();
+    return true;
   }
 
   void reset() {
