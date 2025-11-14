@@ -44,6 +44,44 @@ namespace XBoard {
 
   StateMachine* stateMachine = nullptr;
 
+  StateMachine::~StateMachine() {
+    join_ponder_worker();
+  }
+
+  void StateMachine::launch_ponder_worker() {
+
+    join_ponder_worker();
+
+    std::lock_guard<std::mutex> lk(ponderMutex);
+
+    if (ponderMove == MOVE_NONE)
+        return;
+
+    ponderWorker.reset(new NativeThread(&StateMachine::ponder, this));
+  }
+
+  void StateMachine::join_ponder_worker() {
+
+    std::unique_ptr<NativeThread> worker;
+
+    {
+        std::lock_guard<std::mutex> lk(ponderMutex);
+
+        if (!ponderWorker)
+            return;
+
+        worker = std::move(ponderWorker);
+    }
+
+    worker->join();
+  }
+
+  void StateMachine::cancel_ponder_worker() {
+
+    ponderMove = MOVE_NONE;
+    join_ponder_worker();
+  }
+
   // go() starts the search for game play, analysis, or perft.
 
   void StateMachine::go(Search::LimitsType searchLimits, bool ponder) {
@@ -73,6 +111,7 @@ namespace XBoard {
         Threads.abort = true;
     Threads.stop = true;
     Threads.main()->wait_for_search_finished();
+    join_ponder_worker();
     // Ensure that current position does not get out of sync with GUI
     if (Threads.main()->ponder)
     {
