@@ -90,6 +90,8 @@ namespace Stockfish::Eval::NNUE {
       Detail::initialize(network[i]);
   }
 
+  constexpr std::uint32_t MaxDescriptionLength = 4096;
+
   // Read network header
   bool read_header(std::istream& stream, std::uint32_t* hashValue, std::string* desc)
   {
@@ -99,8 +101,52 @@ namespace Stockfish::Eval::NNUE {
     *hashValue  = read_little_endian<std::uint32_t>(stream);
     size        = read_little_endian<std::uint32_t>(stream);
     if (!stream || version != Version) return false;
+    if (size > MaxDescriptionLength) return false;
+
+    std::uint64_t remaining = 0;
+    bool          hasRemaining = false;
+    std::streambuf* buffer = stream.rdbuf();
+
+    if (!buffer)
+      return false;
+
+    const std::istream::pos_type currentPos = stream.tellg();
+
+    if (currentPos != std::istream::pos_type(-1))
+    {
+      stream.seekg(0, std::ios::end);
+      const std::istream::pos_type endPos = stream.tellg();
+
+      if (endPos != std::istream::pos_type(-1) && endPos >= currentPos)
+      {
+        remaining = static_cast<std::uint64_t>(endPos - currentPos);
+        hasRemaining = true;
+      }
+
+      stream.seekg(currentPos, std::ios::beg);
+      if (!stream)
+        return false;
+    }
+
+    if (!hasRemaining)
+    {
+      const std::streamsize available = buffer->in_avail();
+
+      if (available >= 0)
+      {
+        remaining = static_cast<std::uint64_t>(available);
+        hasRemaining = true;
+      }
+    }
+
+    if (!hasRemaining)
+      return false;
+
+    if (remaining < size)
+      return false;
+
     desc->resize(size);
-    stream.read(&(*desc)[0], size);
+    stream.read(desc->data(), static_cast<std::streamsize>(size));
     return !stream.fail();
   }
 
