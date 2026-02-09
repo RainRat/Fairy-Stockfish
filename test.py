@@ -862,7 +862,8 @@ class TestPyffish(unittest.TestCase):
         self.assertEqual(result, "Hd5")
 
         result = sf.get_san("janggi", JANGGI, "b1c3", False, sf.NOTATION_JANGGI)
-        self.assertEqual(result, "H02-83")
+        self.assertEqual(result, "H102-83")
+        self.assertIn("10", result)
 
         fen = "1b1aa2b1/5k3/3ncn3/1pp1pp3/5r2p/9/P1PPB1PPB/2N1CCN1c/9/R2AKAR2 w - - 19 17"
         result = sf.get_san("janggi", fen, "d1e2", False, sf.NOTATION_SAN)
