@@ -20,6 +20,7 @@
 #define PARSER_H_INCLUDED
 
 #include <iostream>
+#include <string>
 
 #include "variant.h"
 
@@ -53,6 +54,8 @@ private:
     template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target);
     template <bool Current = true, class T> bool parse_attribute(const std::string& key, T& target, std::string pieceToChar);
 };
+
+bool parse_castling_rights(const std::string& value, CastlingRights& parsed);
 
 } // namespace Stockfish
 
