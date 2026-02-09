@@ -1229,6 +1229,16 @@ class TestPyffish(unittest.TestCase):
                 fen = sf.start_fen(variant)
                 self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_OK)
 
+    def test_validate_fen_rejects_excessive_empty_counts(self):
+        invalid_fens = [
+            ("chess", "rnbqkbnr/pppppppp/8/10p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
+            ("capablanca", "rnabqkbcnr/pppppppppp/10/12p8/10/10/PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1"),
+        ]
+
+        for variant, fen in invalid_fens:
+            with self.subTest(variant=variant, fen=fen):
+                self.assertEqual(sf.validate_fen(fen, variant), sf.FEN_INVALID_BOARD_GEOMETRY)
+
     def test_validate_fen_promoted_pieces(self):
         # Test promoted piece validation specifically
         

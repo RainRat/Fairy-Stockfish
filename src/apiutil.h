@@ -493,8 +493,15 @@ public:
         assert(nbFiles > 0 && nbRanks > 0);
         board = std::vector<char>(nbRanks * nbFiles, ' ');
     }
-    void set_piece(int rankIdx, int fileIdx, char c) {
+    Validation set_piece(int rankIdx, int fileIdx, char c) {
+        if (rankIdx < 0 || rankIdx >= nbRanks || fileIdx < 0 || fileIdx >= nbFiles)
+        {
+            std::cerr << "Invalid board index (rank: " << rankIdx << ", file: " << fileIdx
+                      << ") for board of size " << nbRanks << "x" << nbFiles << "." << std::endl;
+            return NOK;
+        }
         board[rankIdx * nbFiles + fileIdx] = c;
+        return OK;
     }
     char get_piece(int rowIdx, int fileIdx) const {
         return board[rowIdx * nbFiles + fileIdx];
@@ -651,12 +658,14 @@ inline Validation fill_char_board(CharBoard& board, const std::string& fenBoard,
         }
         else if (!contains(validSpecialCharactersFirstField, c))
         {  // normal piece
-            if (fileIdx == board.get_nb_files())
+            if (fileIdx >= board.get_nb_files())
             {
                 std::cerr << "File index: " << fileIdx << " for piece '" << c << "' exceeds maximum of allowed number of files: " << board.get_nb_files() << "." << std::endl;
                 return NOK;
             }
-            board.set_piece(v->maxRank-rankIdx, fileIdx, c);  // we mirror the rank index because the black pieces are given first in the FEN
+            if (board.set_piece(v->maxRank-rankIdx, fileIdx, c) == NOK)
+                return NOK;
+            // we mirror the rank index because the black pieces are given first in the FEN
             ++fileIdx;
         }
         prevChar = c;
