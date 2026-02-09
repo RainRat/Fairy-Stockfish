@@ -819,6 +819,11 @@ inline bool is_gating(Move m) {
   return gating_type(m) && (type_of(m) == NORMAL || type_of(m) == CASTLING);
 }
 
+inline bool has_gate(Move m) {
+  constexpr int GateShift = 2 * SQUARE_BITS + MOVE_TYPE_BITS + PIECE_TYPE_BITS;
+  return is_gating(m) || ((m >> GateShift) & SQUARE_BIT_MASK);
+}
+
 inline bool is_pass(Move m) {
   return type_of(m) == SPECIAL && from_sq(m) == to_sq(m);
 }
