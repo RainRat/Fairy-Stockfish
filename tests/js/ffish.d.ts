@@ -55,6 +55,7 @@ export interface Board {
     fullmoveNumber(): number;
     halfmoveClock(): number;
     gamePly(): number;
+    stateStackSize(): number;
     hasInsufficientMaterial(turn: boolean): boolean;
     isInsufficientMaterial(): boolean;
     isGameOver(claimDraw?: boolean): boolean;
