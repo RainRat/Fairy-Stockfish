@@ -21,7 +21,8 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include<iostream>
+#include <iostream>
+#include <atomic>
 
 #include "misc.h"
 #include "types.h"
@@ -41,6 +42,10 @@
 using namespace emscripten;
 
 using namespace Stockfish;
+
+namespace {
+std::atomic<bool> logReadGamePgnMoves{false};
+}
 
 void initialize_stockfish() {
   pieceMap.init();
@@ -555,6 +560,10 @@ bool skip_comment(const std::string& pgn, size_t& curIdx, size_t& lineEnd) {
   return true;
 }
 
+void set_read_game_pgn_logging_enabled(bool enabled) {
+  logReadGamePgnMoves.store(enabled);
+}
+
 Game read_game_pgn(std::string pgn) {
   Game game;
   size_t lineStart = 0;
@@ -663,7 +672,8 @@ Game read_game_pgn(std::string pgn) {
           size_t annotationChar2 = sanMove.find('!');
           if (annotationChar1 != std::string::npos || annotationChar2 != std::string::npos)
             sanMove = sanMove.substr(0, std::min(annotationChar1, annotationChar2));
-          std::cout << sanMove << " ";
+          if (logReadGamePgnMoves.load())
+            std::cerr << sanMove << " ";
           game.board->push_san(sanMove);
         }
         curIdx = sanMoveEnd+1;
@@ -750,6 +760,7 @@ EMSCRIPTEN_BINDINGS(ffish_js) {
     .value("N_MOVE_RULE", N_MOVE_RULE)
     .value("N_FOLD_REPETITION", N_FOLD_REPETITION)
     .value("VARIANT_END", VARIANT_END);
+  function("setReadGamePGNLoggingEnabled", &set_read_game_pgn_logging_enabled);
   function("info", &ffish::info);
   function("setOption", &ffish::set_option<std::string>);
   function("setOptionInt", &ffish::set_option<int>);

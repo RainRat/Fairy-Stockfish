@@ -878,6 +878,34 @@ describe('ffish.readGamePGN(pgn)', function () {
      });
          }
   });
+  it("it does not write SAN moves to stdout when logging is disabled", () => {
+    const fs = require('fs');
+    const data = fs.readFileSync(pgnDir + 'c60_ruy_lopez.pgn', 'utf8');
+    ffish.setReadGamePGNLoggingEnabled(false);
+    const originalWrite = process.stdout.write;
+    let captured = '';
+    process.stdout.write = function(chunk, encoding, callback) {
+      if (typeof chunk === 'string') {
+        captured += chunk;
+      } else {
+        captured += chunk.toString(typeof encoding === 'string' ? encoding : undefined);
+      }
+      if (typeof callback === 'function') {
+        callback();
+      }
+      return true;
+    };
+    let game;
+    try {
+      game = ffish.readGamePGN(data);
+    } finally {
+      process.stdout.write = originalWrite;
+    }
+    chai.expect(captured).to.equal('');
+    if (game) {
+      game.delete();
+    }
+  });
 });
 
 describe('game.headerKeys()', function () {
