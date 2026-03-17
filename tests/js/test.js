@@ -158,14 +158,21 @@ describe('board.pop()', function () {
     let board = new ffish.Board();
     board.push("e2e4");
     board.push("e7e5");
-    board.pop();
+    chai.expect(board.pop()).to.equal(true);
     board.push("e7e5");
     board.push("g1f3");
     board.push("b8c6");
     board.push("f1b5");
-    board.pop();
-    board.pop();
+    chai.expect(board.pop()).to.equal(true);
+    chai.expect(board.pop()).to.equal(true);
     chai.expect(board.fen()).to.equal("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2");
+    board.delete();
+  });
+
+  it("it returns false when no move can be undone", () => {
+    let board = new ffish.Board();
+    chai.expect(board.pop()).to.equal(false);
+    chai.expect(board.fen()).to.equal("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     board.delete();
   });
 });
