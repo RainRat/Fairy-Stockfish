@@ -315,6 +315,14 @@ class TestPyffish(unittest.TestCase):
         result = sf.set_option("UCI_Variant", "capablanca")
         self.assertIsNone(result)
 
+    def test_parse_castling_rights_invalid(self):
+        success, rights = sf.parse_castling_rights("KQ")
+        self.assertTrue(success)
+
+        success, unchanged = sf.parse_castling_rights("Kx", rights)
+        self.assertFalse(success)
+        self.assertEqual(unchanged, rights)
+
     def test_two_boards(self):
         self.assertFalse(sf.two_boards("chess"))
         self.assertTrue(sf.two_boards("bughouse"))

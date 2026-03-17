@@ -18,6 +18,7 @@
 #include "uci.h"
 #include "piece.h"
 #include "variant.h"
+#include "parser.h"
 #include "apiutil.h"
 
 using namespace Stockfish;
@@ -105,6 +106,18 @@ extern "C" PyObject* pyffish_loadVariantConfig(PyObject* self, PyObject *args) {
     variants.parse_istream<false>(ss);
     Options["UCI_Variant"].set_combo(variants.get_keys());
     Py_RETURN_NONE;
+}
+
+extern "C" PyObject* pyffish_parseCastlingRights(PyObject* self, PyObject *args) {
+    const char *value;
+    int initial = NO_CASTLING;
+    if (!PyArg_ParseTuple(args, "s|i", &value, &initial))
+        return NULL;
+
+    CastlingRights rights = CastlingRights(initial);
+    bool ok = parse_castling_rights(std::string(value), rights);
+
+    return Py_BuildValue("(Oi)", ok ? Py_True : Py_False, static_cast<int>(rights));
 }
 
 // INPUT variant
@@ -406,6 +419,7 @@ static PyMethodDef PyFFishMethods[] = {
     {"variants", (PyCFunction)pyffish_variants, METH_NOARGS, "Get supported variants."},
     {"set_option", (PyCFunction)pyffish_setOption, METH_VARARGS, "Set UCI option."},
     {"load_variant_config", (PyCFunction)pyffish_loadVariantConfig, METH_VARARGS, "Load variant configuration."},
+    {"parse_castling_rights", (PyCFunction)pyffish_parseCastlingRights, METH_VARARGS, "Parse castling rights string."},
     {"start_fen", (PyCFunction)pyffish_startFen, METH_VARARGS, "Get starting position FEN."},
     {"two_boards", (PyCFunction)pyffish_twoBoards, METH_VARARGS, "Checks whether the variant is played on two boards."},
     {"captures_to_hand", (PyCFunction)pyffish_capturesToHand, METH_VARARGS, "Checks whether the variant rules contains capturesToHand."},

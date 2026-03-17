@@ -26,6 +26,29 @@
 
 namespace Stockfish {
 
+bool parse_castling_rights(const std::string& value, CastlingRights& parsed) {
+    CastlingRights accumulator = NO_CASTLING;
+    std::stringstream ss(value);
+    char c;
+
+    while (ss >> c && c != '-')
+    {
+        CastlingRights castlingRight =  c == 'K' ? WHITE_OO
+                                   : c == 'Q' ? WHITE_OOO
+                                   : c == 'k' ? BLACK_OO
+                                   : c == 'q' ? BLACK_OOO
+                                   : NO_CASTLING;
+
+        if (castlingRight)
+            accumulator = CastlingRights(accumulator | castlingRight);
+        else
+            return false;
+    }
+
+    parsed = accumulator;
+    return true;
+}
+
 namespace {
 
     template <typename T> bool set(const std::string& value, T& target)
@@ -155,24 +178,13 @@ namespace {
 
 
     template <> bool set(const std::string& value, CastlingRights& target) {
-        char c;
-        CastlingRights castlingRight;
-        std::stringstream ss(value);
-        target = NO_CASTLING;
-        bool valid = true;
-        while (ss >> c && c != '-')
+        CastlingRights parsed = target;
+        if (parse_castling_rights(value, parsed))
         {
-            castlingRight =  c == 'K' ? WHITE_OO
-                           : c == 'Q' ? WHITE_OOO
-                           : c == 'k' ? BLACK_OO
-                           : c == 'q' ? BLACK_OOO
-                           : NO_CASTLING;
-            if (castlingRight)
-                target = CastlingRights(target | castlingRight);
-            else
-                valid = false;
+            target = parsed;
+            return true;
         }
-        return valid;
+        return false;
     }
 
     template <typename T> void set(PieceType pt, T& target) {
