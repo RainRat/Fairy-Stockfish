@@ -75,6 +75,20 @@ cat << EOF > ep_hash.exp
    expect eof
 EOF
 
+cat << EOF > pseudo_royal_check_count.exp
+   spawn ./stockfish load ../tests/pseudo_royal_check_count.ini
+   send "setoption name UCI_Variant value pseudo-royal-check-count\\n"
+   send "position startpos moves d1e1\\n"
+   send "d\\n"
+   expect "Fen: 4n3/8/8/8/8/8/8/4Q3 b - - 8+9 1 1"
+   send "setoption name UCI_Variant value pseudo-royal-duple-check-count\\n"
+   send "position startpos moves d1e1\\n"
+   send "d\\n"
+   expect "Fen: 4n3/8/8/8/7n/8/8/4Q3 b - - 8+9 1 1"
+   send "quit\\n"
+   expect eof
+EOF
+
 cat << EOF > xboard.exp
    spawn ./stockfish load variants.ini
    send "xboard\\n"
@@ -90,7 +104,7 @@ cat << EOF > xboard.exp
    expect eof
 EOF
 
-for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp xboard.exp
+for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp pseudo_royal_check_count.exp xboard.exp
 do
   echo "Testing $exp"
   timeout 5 expect $exp > /dev/null
