@@ -165,6 +165,17 @@ customPiece1 = y:BfR
 castlingRookPieces = rl
 seirawanGating = true
 startFen = lgaykagl/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR[EHyg] w KQBCDFGabcdefgh - 0 1
+
+[pseudo-royal-check-count]
+knight = n
+queen = q
+king = -
+castling = false
+extinctionValue = loss
+extinctionPieceTypes = *
+extinctionPseudoRoyal = true
+checkCounting = true
+startFen = 4n3/8/8/8/8/8/8/3Q4 w - - 9+9 0 1
 """
 
 sf.load_variant_config(ini_text)
@@ -635,6 +646,10 @@ class TestPyffish(unittest.TestCase):
         # Asymmetric gating rights survive FEN round trips (#1013)
         result = sf.get_fen("s-orda-try-1", sf.start_fen("s-orda-try-1"), ["e2e4"])
         self.assertEqual(result, "lgaykagl/8/pppppppp/8/4P3/8/PPPP1PPP/RNBQKBNR[EHyg] b KQBCDFGabcdefgh - 0 1")
+
+        # Pseudo-royal checks decrement the remaining-checks counter
+        result = sf.get_fen("pseudo-royal-check-count", sf.start_fen("pseudo-royal-check-count"), ["d1e1"])
+        self.assertEqual(result, "4n3/8/8/8/8/8/8/4Q3 b - - 8+9 1 1")
 
         # duck chess en passant
         fen = "r1b1k3/pp3pb1/4p3/2p2p2/2PpP2q/1P1P1P2/P1K1*3/RN1Q2N1 b q e3 0 17"

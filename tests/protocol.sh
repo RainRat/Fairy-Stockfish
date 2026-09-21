@@ -75,6 +75,31 @@ cat << EOF > ep_hash.exp
    expect eof
 EOF
 
+cat << EOF > ep_incremental.exp
+   spawn ./stockfish
+   send "setoption name UCI_Variant value chess\\n"
+   send "position fen k7/8/8/8/3p4/8/4P3/K7 w - - 0 1 moves e2e4\\n"
+   send "d\\n"
+   expect -re {Fen: ([^\\r\\n]+)} { set fen_moved \$expect_out(1,string) }
+   expect -re {Key: ([0-9A-F]+)} { set key_moved \$expect_out(1,string) }
+   send "position fen \$fen_moved\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$key_moved != \$expect_out(1,string)} { exit 1 }
+   }
+   send "position fen k7/8/8/8/3pP3/8/8/K7 b - e3 0 1 moves a8b8\\n"
+   send "d\\n"
+   expect -re {Fen: ([^\\r\\n]+)} { set fen_cleared \$expect_out(1,string) }
+   expect -re {Key: ([0-9A-F]+)} { set key_cleared \$expect_out(1,string) }
+   send "position fen \$fen_cleared\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$key_cleared != \$expect_out(1,string)} { exit 1 }
+   }
+   send "quit\\n"
+   expect eof
+EOF
+
 cat << EOF > pseudo_royal_check_count.exp
    spawn ./stockfish load ../tests/pseudo_royal_check_count.ini
    send "setoption name UCI_Variant value pseudo-royal-check-count\\n"
@@ -85,6 +110,15 @@ cat << EOF > pseudo_royal_check_count.exp
    send "position startpos moves d1e1\\n"
    send "d\\n"
    expect "Fen: 4n3/8/8/8/7n/8/8/4Q3 b - - 8+9 1 1"
+   send "setoption name UCI_Variant value pseudo-royal-check-count\\n"
+   send "position fen 4n3/8/8/8/8/8/8/4Q3 b - - 9+9 1 1\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} { set key_before \$expect_out(1,string) }
+   send "position fen 4n3/8/8/8/8/8/8/4Q3 b - - 8+9 1 1\\n"
+   send "d\\n"
+   expect -re {Key: ([0-9A-F]+)} {
+       if {\$key_before == \$expect_out(1,string)} { exit 1 }
+   }
    send "quit\\n"
    expect eof
 EOF
@@ -104,7 +138,7 @@ cat << EOF > xboard.exp
    expect eof
 EOF
 
-for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp pseudo_royal_check_count.exp xboard.exp
+for exp in uci.exp ucci.exp usi.exp ucicyclone.exp ucicyclone2.exp ep_hash.exp ep_incremental.exp pseudo_royal_check_count.exp xboard.exp
 do
   echo "Testing $exp"
   timeout 5 expect $exp > /dev/null
