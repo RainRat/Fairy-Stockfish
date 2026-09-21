@@ -1717,10 +1717,6 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
     assert(captured == NO_PIECE || color_of(captured) == (m.type_of() != CASTLING ? them : us));
     assert(type_of(captured) != KING);
 
-    if (check_counting() && givesCheck)
-        k ^= Zobrist::checks[us][st->checksRemaining[us]]
-           ^ Zobrist::checks[us][--(st->checksRemaining[us])];
-
     if (type_of(m) == CASTLING)
     {
         assert(type_of(pc) != NO_PIECE_TYPE);
@@ -2267,6 +2263,13 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck, DirtyPiece& dp
 
     // Update king attacks used for fast check detection
     set_check_info();
+
+    if (check_counting()
+        && (givesCheck || (extinction_pseudo_royal() && checked_pseudo_royals(sideToMove))))
+    {
+        st->key ^= Zobrist::checks[us][st->checksRemaining[us]]
+                 ^ Zobrist::checks[us][--(st->checksRemaining[us])];
+    }
 
     // Calculate the repetition info. It is the ply distance from the previous
     // occurrence of the same position, negative in the 3-fold case, or zero
