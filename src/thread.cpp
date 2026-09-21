@@ -116,10 +116,7 @@ void Thread::idle_loop() {
       cv.notify_one(); // Wake up anyone waiting for search finished
       // Start ponder search from separate thread to prevent deadlock
       if (Threads.size() && this == Threads.main() && XBoard::stateMachine && XBoard::stateMachine->ponderMove)
-      {
-          NativeThread t(&XBoard::StateMachine::ponder, XBoard::stateMachine);
-          t.detach();
-      }
+          XBoard::stateMachine->launch_ponder_worker();
       cv.wait(lk, [&]{ return searching; });
 
       if (exit)
