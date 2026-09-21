@@ -267,7 +267,7 @@ void MovePicker::score() {
 
         if constexpr (Type == CAPTURES)
             m.value =
-              7 * int(PieceValue[MG][pos.piece_on(to_sq(m))]) * !pos.must_capture()
+              7 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
               + (*gateHistory)[pos.side_to_move()][gating_square(m)]
               + (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))];
 
