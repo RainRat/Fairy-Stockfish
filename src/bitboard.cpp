@@ -317,8 +317,16 @@ void Bitboards::init_pieces() {
                                 leaper |= safe_destination(s, c == WHITE ? d : -d);
                         }
                         pseudo |= sliding_attack<RIDER>(pi->slider[initial][modality], s, 0, c);
-                        pseudo |=
-                          sliding_attack<HOPPER_RANGE>(pi->hopper[initial][modality], s, 0, c);
+                        // Hoppers need a hurdle between origin and destination,
+                        // so squares adjacent along their rays are never
+                        // reachable. Exclude them so that potential-based tests
+                        // (e.g. immobility) see the true dead zone.
+                        Bitboard hopperRange = sliding_attack<HOPPER_RANGE>(
+                          pi->hopper[initial][modality], s, 0, c);
+                        for (auto const& hopperMove : pi->hopper[initial][modality])
+                            hopperRange &= ~safe_destination(
+                              s, c == WHITE ? hopperMove.first : -hopperMove.first);
+                        pseudo |= hopperRange;
                     }
                 }
             }

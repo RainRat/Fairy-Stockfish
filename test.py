@@ -165,6 +165,12 @@ customPiece1 = y:BfR
 castlingRookPieces = rl
 seirawanGating = true
 startFen = lgaykagl/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR[EHyg] w KQBCDFGabcdefgh - 0 1
+
+[immobility-illegal-hopper-test:shogi]
+customPiece1 = m:fpR
+customPiece2 = j:fC
+promotedPieceType = p:g m:g j:g s:g b:h r:d
+startFen = 2sgkgs2/1r5b1/p1ppppp1p/1p5p1/9/1P5P1/P1PPPPP1P/1B5R1/2SGKGS2[mmMMjjJJ]
 """
 
 sf.load_variant_config(ini_text)
@@ -407,6 +413,14 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("s-orda-try-1", sf.start_fen("s-orda-try-1"), [])
         self.assertIn("b1a3h", result)
         self.assertIn("b1a3e", result)
+
+        # Pure hoppers cannot move into squares they can never leave (#990)
+        result = sf.legal_moves("immobility-illegal-hopper-test", "k8/9/4p4/4M4/9/9/9/9/K8 w - - 0 1", [])
+        self.assertNotIn("e6e8", result)
+        self.assertIn("e6e8+", result)
+        result = sf.legal_moves("immobility-illegal-hopper-test", "k8/9/9/9/9/9/9/9/K8[M] w - - 0 1", [])
+        self.assertNotIn("M@e8", result)
+        self.assertIn("M@e7", result)
 
         # Drop pseudo-royals into check
         result = sf.legal_moves("coregaldrop", sf.start_fen("coregaldrop"), [])
