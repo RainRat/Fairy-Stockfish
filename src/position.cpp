@@ -462,8 +462,10 @@ Position& Position::set(const Variant*  v,
                 set_castling_right(c, rsq);
         }
 
-        // Set castling rights for 960 gating variants
-        if (gating() && castling_enabled())
+        // Set castling rights for 960 gating variants. Outside 960, file
+        // letters accompanied by pieces in hand are gates only, so deriving
+        // rights from them here would invent rights that were never given.
+        if (gating() && castling_enabled() && (isChess960 || var->chess960))
             for (Color c : {WHITE, BLACK})
                 if ((gates(c) & pieces(castling_king_piece(c))) && !castling_rights(c)
                     && (!seirawan_gating() || count_in_hand(c, ALL_PIECES) > 0

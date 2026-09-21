@@ -2014,6 +2014,9 @@ Variant* Variant::conclude() {
         doubleStepRegion[WHITE] = doubleStepRegion[BLACK] = 0;
     if (!doubleStepRegion[WHITE] && !doubleStepRegion[BLACK])
         doubleStep = false;
+    // Seirawan-style gating requires the backrank gate squares
+    if (seirawanGating)
+        gating = true;
 
     // Determine optimizations
     bool restrictedMobility = false;

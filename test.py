@@ -143,6 +143,28 @@ pawnTypes = ps
 
 [repetitionloss:chess]
 nFoldValue = loss
+
+[orda:chess]
+pieceToCharTable = PNBRQ..AH...........LKp...q..ah.y.........lk
+centaur = h
+knibis = a
+kniroo = l
+silver = y
+promotionPieceTypes = qh
+startFen = lhaykahl/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR w KQ - 0 1
+flagPiece = k
+flagRegionWhite = *8
+flagRegionBlack = *1
+
+[s-orda-try-1:orda]
+pieceToCharTable = RNBQKEGHLAYP........rnbqkeghlayp........
+chancellor = e
+centaur = g
+archbishop = h
+customPiece1 = y:BfR
+castlingRookPieces = rl
+seirawanGating = true
+startFen = lgaykagl/8/pppppppp/8/8/8/PPPPPPPP/RNBQKBNR[EHyg] w KQBCDFGabcdefgh - 0 1
 """
 
 sf.load_variant_config(ini_text)
@@ -381,6 +403,11 @@ class TestPyffish(unittest.TestCase):
         result = sf.legal_moves("seirawan", fen, [])
         self.assertIn("c8g4h", result)
 
+        # Asymmetric seirawan gating without explicit gating flag (#1013)
+        result = sf.legal_moves("s-orda-try-1", sf.start_fen("s-orda-try-1"), [])
+        self.assertIn("b1a3h", result)
+        self.assertIn("b1a3e", result)
+
         # Drop pseudo-royals into check
         result = sf.legal_moves("coregaldrop", sf.start_fen("coregaldrop"), [])
         self.assertIn("Q@a3", result)
@@ -604,6 +631,10 @@ class TestPyffish(unittest.TestCase):
         fen = "7k/8/8/2Ppq3/*7/8/8/K2R4 w - - 0 1"
         result = sf.get_fen("atomicduck", fen, ["d1d5,d5e5"])
         self.assertEqual(result, "7k/8/8/2P1*3/8/8/8/K7 b - - 0 1")
+
+        # Asymmetric gating rights survive FEN round trips (#1013)
+        result = sf.get_fen("s-orda-try-1", sf.start_fen("s-orda-try-1"), ["e2e4"])
+        self.assertEqual(result, "lgaykagl/8/pppppppp/8/4P3/8/PPPP1PPP/RNBQKBNR[EHyg] b KQBCDFGabcdefgh - 0 1")
 
         # duck chess en passant
         fen = "r1b1k3/pp3pb1/4p3/2p2p2/2PpP2q/1P1P1P2/P1K1*3/RN1Q2N1 b q e3 0 17"
