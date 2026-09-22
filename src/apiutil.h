@@ -170,7 +170,16 @@ inline std::string rank(const Position& pos, Square s, Notation n) {
     case NOTATION_SHOGI_HODGES:
         return std::string(1, char('a' + pos.max_rank() - rank_of(s)));
     case NOTATION_JANGGI:
-        return std::to_string((pos.max_rank() - rank_of(s) + 1) % 10);
+    {
+        int boardHeight = pos.ranks();
+        int rawRank = pos.max_rank() - rank_of(s) + 1;
+        int displayRank = rawRank % boardHeight;
+
+        if (displayRank == 0)
+            displayRank = boardHeight;
+
+        return std::to_string(displayRank);
+    }
     case NOTATION_XIANGQI_WXF:
     {
         if (pos.empty(s))
